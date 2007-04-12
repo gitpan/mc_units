@@ -1,0 +1,596 @@
+
+From jhi@iki.fi Fri Feb 20 10:44:34 1998
+Date: Thu, 19 Feb 1998 18:23:49 +0200 (EET)
+From: Jarkko Hietaniemi <jhi@iki.fi>
+To: perl5-porters@perl.org
+Cc: Marek Rouchal <marek.rouchal@hl.siemens.de>
+Subject: experimental [PATCH] 5.004_59: use filetest 'access'
+
+    [The following text is in the "ISO-8859-1" character set]
+    [Your display is set for the "US-ASCII" character set]
+    [Some characters may be displayed incorrectly]
+
+
+The ACL-et alia-filetest patch reworked.
+
+	- now _59-compliant
+	- name of the pragma changed to 'filetest'
+	- the old functionality available as "use filetest 'access'"
+	- because in SecureWare (high security HP-UX) there already
+	  is eaccess() our eaccess renamed to emulate_eaccess()
+	  (also a more descriptive name)
+	- this eaccess() (which happens to do just the right thing)
+	  requires <sys/security.h>
+
+The subpragma "access" still uses up the 0x1000 bit of the $^H, I did
+not change that.  More research needs to be done as to what kind of
+subpragmas would make sense, at which platforms and filesystems.
+
+diff -ruN perl5.004_59/Configure perl5.004_59+ft/Configure
+--- perl5.004_59/Configure	Thu Feb 12 18:18:01 1998
++++ perl5.004_59+ft/Configure	Thu Feb 19 17:45:23 1998
+@@ -273,6 +273,9 @@
+ cpprun=''
+ cppstdin=''
+ d_access=''
++d_accessx=''
++i_syssecrt=''
++d_eaccess=''
+ d_alarm=''
+ d_attribut=''
+ d_bcmp=''
+@@ -478,6 +481,7 @@
+ d_sched_yield=''
+ d_pthread_yield=''
+ h_fcntl=''
++h_sysaccess=''
+ h_sysfile=''
+ db_hashtype=''
+ db_prefixtype=''
+@@ -520,6 +524,7 @@
+ i_sysfile=''
+ d_voidtty=''
+ i_bsdioctl=''
++i_sysaccess=''
+ i_sysfilio=''
+ i_sysioctl=''
+ i_syssockio=''
+@@ -5594,6 +5599,9 @@
+ : Initialize h_fcntl
+ h_fcntl=false
+ 
++: Initialize h_sysaccess
++h_sysaccess=false
++
+ : Initialize h_sysfile
+ h_sysfile=false
+ 
+@@ -5610,6 +5618,9 @@
+ #ifdef I_FCNTL
+ #include <fcntl.h>
+ #endif
++#ifdef I_SYS_ACCESS
++#include <sys/access.h>
++#endif
+ #ifdef I_SYS_FILE
+ #include <sys/file.h>
+ #endif
+@@ -5625,6 +5636,10 @@
+ 		$cc $cppflags -DI_SYS_FILE access.c -o access >/dev/null 2>&1 ; then
+ 		h_sysfile=true;
+ 		echo "<sys/file.h> defines the *_OK access constants." >&4
++	elif $test `./findhdr sys/access.h` && \
++		$cc $cppflags -DI_SYS_ACCESS access.c -o access >/dev/null 2>&1 ; then
++		h_sysaccess=true;
++		echo "<sys/access.h> defines the *_OK access constants." >&4
+ 	elif $test `./findhdr fcntl.h` && \
+ 		$cc $cppflags -DI_FCNTL access.c -o access >/dev/null 2>&1 ; then
+ 		h_fcntl=true;
+@@ -5639,6 +5654,18 @@
+ esac
+ $rm -f access*
+ 
++: see if accessx exists
++set accessx d_accessx
++eval $inlibc
++
++: see if sys/security.h is available
++set sys/security.h i_syssecrt
++eval $inhdr
++
++: see if eaccess exists
++set eaccess d_eaccess
++eval $inlibc
++
+ : see if alarm exists
+ set alarm d_alarm
+ eval $inlibc
+@@ -9953,6 +9980,10 @@
+ set stddef.h i_stddef
+ eval $inhdr
+ 
++: see if this is a sys/access system
++set sys/access.h i_sysaccess
++eval $inhdr
++
+ : see if ioctl defs are in sgtty, termio, sys/filio or sys/ioctl
+ set sys/filio.h i_sysfilio
+ eval $inhdr
+@@ -10398,6 +10429,9 @@
+ csh='$csh'
+ d_Gconvert='$d_Gconvert'
+ d_access='$d_access'
++d_accessx='$d_accessx'
++i_syssecrt='$i_syssecrt'
++d_eaccess='$d_eaccess'
+ d_alarm='$d_alarm'
+ d_archlib='$d_archlib'
+ d_attribut='$d_attribut'
+@@ -10625,6 +10659,7 @@
+ gzip='$gzip'
+ h_fcntl='$h_fcntl'
+ h_sysfile='$h_sysfile'
++h_sysaccess='$h_sysaccess'
+ hint='$hint'
+ hostcat='$hostcat'
+ huge='$huge'
+@@ -10655,6 +10690,7 @@
+ i_stddef='$i_stddef'
+ i_stdlib='$i_stdlib'
+ i_string='$i_string'
++i_sysaccess='$i_sysaccess'
+ i_sysdir='$i_sysdir'
+ i_sysfile='$i_sysfile'
+ i_sysfilio='$i_sysfilio'
+diff -ruN perl5.004_59/MANIFEST perl5.004_59+ft/MANIFEST
+--- perl5.004_59/MANIFEST	Thu Feb 12 18:43:30 1998
++++ perl5.004_59+ft/MANIFEST	Thu Feb 19 17:32:04 1998
+@@ -461,6 +461,7 @@
+ lib/exceptions.pl	catch and throw routines
+ lib/fastcwd.pl		a faster but more dangerous getcwd
+ lib/fields.pm		Set up object field names for pseudo-hash-using classes
++lib/filetest.pm		For "use filetest"
+ lib/find.pl		A find emulator--used by find2perl
+ lib/finddepth.pl	A depth-first find emulator--used by find2perl
+ lib/flush.pl		Routines to do single flush
+diff -ruN perl5.004_59/config_h.SH perl5.004_59+ft/config_h.SH
+--- perl5.004_59/config_h.SH	Thu Feb 12 18:18:01 1998
++++ perl5.004_59+ft/config_h.SH	Thu Feb 19 17:13:58 1998
+@@ -123,6 +123,18 @@
+ #define CPPSTDIN "$cppstdin"
+ #define CPPMINUS "$cppminus"
+ 
++/* HAS_ACCESS:
++ *	This symbol, if defined, indicates that the access routine is
++ *	available.
++ */
++#$d_access HAS_ACCESS		/**/
++
++/* HAS_ACCESSX:
++ *	This symbol, if defined, indicates that the accessx routine is
++ *	available.
++ */
++#$d_accessx HAS_ACCESSX		/**/
++
+ /* HAS_ALARM:
+  *	This symbol, if defined, indicates that the alarm routine is
+  *	available.
+@@ -1264,6 +1276,12 @@
+  */
+ #$i_string I_STRING		/**/
+ 
++/* I_SYS_ACCESS:
++ *	This symbol, if defined, indicates to the C program that it should
++ *	include <sys/access.h>.
++ */
++#$i_sysaccess I_SYS_ACCESS		/**/
++
+ /* I_SYS_DIR:
+  *	This symbol, if defined, indicates to the C program that it should
+  *	include <sys/dir.h>.
+@@ -1305,6 +1323,12 @@
+  *	include <sys/select.h> in order to get definition of struct timeval.
+  */
+ #$i_sysselct I_SYS_SELECT	/**/
++
++/* I_SYS_SECURITY:
++ *	This symbol, if defined, indicates to the C program that it should
++ *	include <sys/security.h>.
++ */
++#$i_syssecrt I_SYS_SECURITY	/**/
+ 
+ /* I_SYS_TIMES:
+  *	This symbol, if defined, indicates to the C program that it should
+diff -ruN perl5.004_59/lib/filetest.pm perl5.004_59+ft/lib/filetest.pm
+--- perl5.004_59/lib/filetest.pm	Thu Jan  1 02:00:00 1970
++++ perl5.004_59+ft/lib/filetest.pm	Thu Feb 19 18:09:59 1998
+@@ -0,0 +1,61 @@
++package filetest;
++
++=head1 NAME
++
++filetest - Perl pragma to control the filetest permission operators
++
++=head1 SYNOPSIS
++    
++    $can_perhaps_read = -r "file";	# use the mode bits
++    {
++        use filetest 'access';		# intuit harder
++        $can_really_read = -r "file";
++    }
++    $can_perhaps_read = -r "file";	# use the mode bits again
++
++=head1 DESCRIPTION
++
++This pragma tells the compiler to change the behaviour of the filetest
++permissions operators, the -r -w -x -R -W -X (see L<perlfunc>).
++
++The default behaviour to use the mode bits as returned by the stat()
++family of calls.  This, however, may not be the right thing to do if
++for example various ACL (access control lists) schemes are in use.
++For such environments, C<use filetest> may help the permission
++operators to return results more consistent with other tools.
++
++Each "use filetest" or "no filetest" affects statements to the end of
++the enclosing BLOCK.
++
++There may be a slight performance decrease in the filetests
++when C<use filetest> is in effect, because in some systems
++the extended functionality needs to be emulated.
++
++B<NOTE>: using the file tests is a lost case from the start: there is
++a window open for race conditions (who is to say that the permissions
++will not change between the test and the real operation?).  Therefore
++if you are serious about security, just try the real operation and
++test for its success.  Think atomicity.
++
++=head2 subpragma access
++
++Currently only one subpragma, C<access> is implemented.  It enables
++(or disables) the use of access() or similar system calls.  This
++extended filetest functionality is used only when the argument of the
++operators is a filename, not when it is a filehandle.
++
++=cut
++
++sub import {
++    if ( $_[1] eq 'access' ) {
++	$^H |= 0x1000;
++    } else {
++	die "filetest: the only implemented subpragma is 'access'.\n";
++    }
++}
++
++sub unimport {
++    $^H &= ~0x1000;
++}
++
++1;
+diff -ruN perl5.004_59/perl.h perl5.004_59+ft/perl.h
+--- perl5.004_59/perl.h	Fri Feb  6 18:15:34 1998
++++ perl5.004_59+ft/perl.h	Thu Feb 19 16:43:35 1998
+@@ -1617,6 +1617,7 @@
+ #define HINT_STRICT_SUBS	0x00000200
+ #define HINT_STRICT_VARS	0x00000400
+ #define HINT_LOCALE		0x00000800
++#define HINT_ACCESS		0x00001000
+ 
+ /* Various states of an input record separator SV (rs, nrs) */
+ #define RsSNARF(sv)   (! SvOK(sv))
+diff -ruN perl5.004_59/pod/perldiag.pod perl5.004_59+ft/pod/perldiag.pod
+--- perl5.004_59/pod/perldiag.pod	Thu Feb 12 18:18:58 1998
++++ perl5.004_59+ft/pod/perldiag.pod	Thu Feb 19 16:43:35 1998
+@@ -1041,6 +1041,16 @@
+ (F) An untrapped exception was raised while executing an END subroutine.
+ The interpreter is immediately exited.
+ 
++=item effective %s access is not implemented
++
++(F) We cannot switch the real and effective uids or gids.
++The C<access> pragma is unavailable in this system.
++
++=item entering effective %s access failed
++
++(F) While under the C<access> pragma, switching the real and effective
++uids or gids failed.
++
+ =item Error converting file specification %s
+ 
+ (F) An error peculiar to VMS.  Because Perl may have to deal with file
+@@ -1386,6 +1396,11 @@
+ (F) You named a loop to restart, but you're not currently in a loop of
+ that name, not even if you count where you were called from.  See
+ L<perlfunc/last>.
++
++=item leaving effective %s access failed
++
++(F) While under the C<access> pragma, switching the real and effective
++uids or gids failed.
+ 
+ =item listen() on closed fd
+ 
+diff -ruN perl5.004_59/pod/perlfunc.pod perl5.004_59+ft/pod/perlfunc.pod
+--- perl5.004_59/pod/perlfunc.pod	Fri Feb  6 17:59:47 1998
++++ perl5.004_59+ft/pod/perlfunc.pod	Thu Feb 19 18:08:41 1998
+@@ -251,14 +251,30 @@
+     -A	Same for access time.
+     -C	Same for inode change time.
+ 
+-The interpretation of the file permission operators C<-r>, C<-R>, C<-w>,
+-C<-W>, C<-x>, and C<-X> is based solely on the mode of the file and the
+-uids and gids of the user.  There may be other reasons you can't actually
+-read, write or execute the file.  Also note that, for the superuser,
+-C<-r>, C<-R>, C<-w>, and C<-W> always return 1, and C<-x> and C<-X> return
+-1 if any execute bit is set in the mode.  Scripts run by the superuser may
+-thus need to do a stat() to determine the actual mode of the
+-file, or temporarily set the uid to something else.
++The interpretation of the file permission operators C<-r>, C<-R>,
++C<-w>, C<-W>, C<-x>, and C<-X> is by default based solely on the mode
++of the file and the uids and gids of the user.  There may be other
++reasons you can't actually read, write, or execute the file.  Such
++reasons may be for example network filesystem access controls, ACLs
++(access control lists), read-only filesystems, and unrecognized
++executable formats.
++
++Also note that, for the superuser on the local filesystems, C<-r>,
++C<-R>, C<-w>, and C<-W> always return 1, and C<-x> and C<-X> return 1
++if any execute bit is set in the mode.  Scripts run by the superuser
++may thus need to do a stat() to determine the actual mode of the file,
++or temporarily set the uid to something else.
++
++If you are using ACLs, there is a pragma called C<filetest> that may
++produce more accurate results than the bare stat() mode bits.
++
++When under the C<use filetest 'access'> the above-mentioned filetests
++will test whether the permission can (not) be granted using the
++access() family of system calls.  Also note that the -x and -X may
++under this pragma return true even if there are no execute permission
++bits set (nor any extra execute permission ACLs).  This strangeness is
++due to the underlying system calls' definitions.  Read the
++documentation for the C<filetest> pragma for more information.
+ 
+ Example:
+ 
+diff -ruN perl5.004_59/pp_sys.c perl5.004_59+ft/pp_sys.c
+--- perl5.004_59/pp_sys.c	Thu Feb 12 18:18:02 1998
++++ perl5.004_59+ft/pp_sys.c	Thu Feb 19 18:13:35 1998
+@@ -162,6 +162,100 @@
+ 
+ #endif /* no flock() */
+ 
++#if defined(I_SYS_ACCESS) && !defined(R_OK)
++#  include <sys/access.h>
++#endif
++
++#undef EFF_ACCESS_R_OK	/* EFFective uid/gid ACCESS R_OK */
++#undef EFF_ACCESS_W_OK
++#undef EFF_ACCESS_X_OK
++
++/* F_OK unused: if stat() cannot find it... */
++
++#if !defined(EFF_ACCESS_R_OK) && defined(HAS_ACCESS) && defined(EFF_ONLY_OK)
++#   define EFF_ACCESS_R_OK(p) (access((p), R_OK | EFF_ONLY_OK))
++#   define EFF_ACCESS_W_OK(p) (access((p), W_OK | EFF_ONLY_OK))
++#   define EFF_ACCESS_X_OK(p) (access((p), X_OK | EFF_ONLY_OK))
++#endif
++
++#if !defined(EFF_ACCESS_R_OK) && defined(HAS_EACCESS)
++#   if defined(I_SYS_SECURITY)
++#       include <sys/security.h>
++#   endif
++#   define EFF_ACCESS_R_OK(p) (eaccess((p), R_OK, ACC_SELF))
++#   define EFF_ACCESS_W_OK(p) (eaccess((p), W_OK, ACC_SELF))
++#   define EFF_ACCESS_X_OK(p) (eaccess((p), X_OK, ACC_SELF))
++#endif
++
++#if !defined(EFF_ACCESS_R_OK) && defined(HAS_ACCESSX) && defined(ACC_SELF)
++#   define EFF_ACCESS_R_OK(p) (accessx((p), R_OK, ACC_SELF))
++#   define EFF_ACCESS_W_OK(p) (accessx((p), W_OK, ACC_SELF))
++#   define EFF_ACCESS_X_OK(p) (accessx((p), X_OK, ACC_SELF))
++#endif
++
++#if !defined(EFF_ACCESS_R_OK) && defined(HAS_ACCESS)
++/* The Hard Way. */
++static int emulate_eaccess (const char* path, int mode) {
++    Uid_t ruid = getuid();
++    Uid_t euid = geteuid();
++    Gid_t rgid = getgid();
++    Gid_t egid = getegid();
++    int res;
++
++#if !defined(HAS_SETREUID) && !defined(HAS_SETRESUID)
++    croak("effective uid access is not implemented");
++#else
++#ifdef HAS_SETREUID
++    if (setreuid(euid, ruid))
++#else
++#ifdef HAS_SETRESUID
++    if (setresuid(euid, ruid, (Uid_t)-1))
++#endif
++#endif
++	croak("entering effective uid access failed");
++#endif
++
++#if !defined(HAS_SETREGID) && !defined(HAS_SETRESGID)
++    croak("effective gid access is not implemented");
++#else
++#ifdef HAS_SETREGID
++    if (setregid(egid, rgid))
++#else
++#ifdef HAS_SETRESGID
++    if (setresgid(egid, rgid, (Gid_t)-1))
++#endif
++#endif
++	croak("entering effective gid access failed");
++#endif
++
++    res = access(path, mode);
++
++#ifdef HAS_SETREUID
++    if (setreuid(ruid, euid))
++#else
++#ifdef HAS_SETRESUID
++    if (setresuid(ruid, euid, (Uid_t)-1))
++#endif
++#endif
++	croak("leaving effective uid access failed");
++
++#ifdef HAS_SETREGID
++    if (setregid(rgid, egid))
++#else
++#ifdef HAS_SETRESGID
++    if (setresgid(rgid, egid, (Gid_t)-1))
++#endif
++#endif
++	croak("leaving effective gid access failed");
++
++    return res;
++}
++#   define EFF_ACCESS_R_OK(p) (emulate_eaccess((p), R_OK))
++#   define EFF_ACCESS_W_OK(p) (emulate_eaccess((p), W_OK))
++#   define EFF_ACCESS_X_OK(p) (emulate_eaccess((p), X_OK))
++#endif
++
++
+ #ifndef MAXPATHLEN
+ #  ifdef PATH_MAX
+ #    define MAXPATHLEN PATH_MAX
+@@ -2115,8 +2209,21 @@
+ 
+ PP(pp_ftrread)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#if defined(HAS_ACCESS) && defined(R_OK)
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = access(TOPp, R_OK);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IRUSR, 0, &statcache))
+@@ -2126,8 +2233,21 @@
+ 
+ PP(pp_ftrwrite)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#if defined(HAS_ACCESS) && defined(W_OK)
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = access(TOPp, W_OK);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IWUSR, 0, &statcache))
+@@ -2137,8 +2257,21 @@
+ 
+ PP(pp_ftrexec)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#if defined(HAS_ACCESS) && defined(X_OK)
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = access(TOPp, X_OK);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IXUSR, 0, &statcache))
+@@ -2148,8 +2281,21 @@
+ 
+ PP(pp_fteread)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#ifdef EFF_ACCESS_R_OK
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = EFF_ACCESS_R_OK(TOPp);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IRUSR, 1, &statcache))
+@@ -2159,8 +2305,21 @@
+ 
+ PP(pp_ftewrite)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#ifdef EFF_ACCESS_W_OK
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = EFF_ACCESS_W_OK(TOPp);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IWUSR, 1, &statcache))
+@@ -2170,8 +2329,21 @@
+ 
+ PP(pp_fteexec)
+ {
+-    I32 result = my_stat(ARGS);
++    I32 result;
+     djSP;
++#ifdef EFF_ACCESS_X_OK
++    if ((hints & HINT_ACCESS) && SvPOK(TOPs)) {
++	result = EFF_ACCESS_X_OK(TOPp);
++	if (result == 0)
++	    RETPUSHYES;
++	if (result < 0)
++	    RETPUSHUNDEF;
++	RETPUSHNO;
++    } else
++	result = my_stat(ARGS);
++#else
++    result = my_stat(ARGS);
++#endif
+     if (result < 0)
+ 	RETPUSHUNDEF;
+     if (cando(S_IXUSR, 1, &statcache))
+
