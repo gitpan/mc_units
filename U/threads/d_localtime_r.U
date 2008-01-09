@@ -33,7 +33,7 @@
 ?C:LOCALTIME_R_NEEDS_TZSET:
 ?C:	Many libc's localtime_r implementations do not call tzset,
 ?C:	making them differ from localtime(), and making timezone
-?C:	changes using $ENV{TZ} without explicitly calling tzset
+?C:	changes using \$ENV{TZ} without explicitly calling tzset
 ?C:	impossible. This symbol makes us call tzset before localtime_r
 ?C:.
 ?H:?%<:#$d_localtime_r_needs_tzset LOCALTIME_R_NEEDS_TZSET /**/
@@ -56,9 +56,7 @@
 ?H:#define LOCALTIME_R_PROTO $localtime_r_proto	   /**/
 ?H:.
 ?T:try hdrs d_localtime_r_proto
-?LINT:set d_localtime_r
-?LINT:set d_localtime_r_needs_tzset
-?LINT:set localtime_r_proto
+?F:!try
 : see if localtime_r exists
 set localtime_r d_localtime_r
 eval $inlibc

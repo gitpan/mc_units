@@ -74,10 +74,13 @@
 ?H:#$d_oldpthreads	OLD_PTHREADS_API		/**/
 ?H:#$usereentrant	USE_REENTRANT_API	/**/
 ?H:.
-?LINT:set usethreads useithreads use5005threads d_oldpthreads usereentrant
+?X:       [hmb] Removed LINT for use5005threads, useithreads, and
+?X:             usereentrant, as LINT is only run on blead
+?LINT:set usethreads d_oldpthreads
 ?INIT:: set usethreads on the Configure command line to enable threads.
 ?INIT:usereentrant='undef'
 ?F:!usethreads.cbu
+: Do we want threads support and if so, what type
 ?X: We should really have some explanatory text here, and some
 ?X: automatic setting of sensible defaults.
 case "$usethreads" in
@@ -85,7 +88,7 @@ $define|true|[yY]*)     dflt='y';;
 *)     # Catch case where user specified ithreads or 5005threads but
        # forgot -Dusethreads (A.D. 4/2002)
        case "$useithreads$use5005threads" in
-       *$define*)      
+       *$define*)
 		case "$useperlio" in
 		"$define")	dflt='y' ;;
 		*)		dflt='n' ;;
@@ -178,29 +181,20 @@ EOM
 else
 : perl-5.9.x and later
 
-    use5005threads="$undef"
-    case "$usethreads" in
-    $define)
-	: Default to ithreads unless overridden on command line or with
-	: old config.sh
-	dflt='y'
-	case "$useithreads" in
-		$undef|false|[nN]*) dflt='n';;
-	esac
-	rp='Use the newer interpreter-based ithreads?'
-	. ./myread
-	case "$ans" in
-	y|Y)    val="$define" ;;
-	*)      val="$undef" ;;
-	esac
-	set useithreads
-	eval $setvar
-	;;
-    *)
-	useithreads="$undef"
-	;;
-    esac
+    if test X"$usethreads" = "X$define"; then
+	case "$use5005threads" in
+	    $define|true|[yY]*)
+		$cat >&4 <<EOM
 
+5.005 threads has been removed for 5.10.  Perl will be built using ithreads.
+
+EOM
+	    ;;
+	esac
+    fi
+
+    use5005threads="$undef"
+    useithreads="$usethreads"
 fi
 
 if test X"$usethreads" = "X$define" -a "X$useperlio" = "Xundef"; then

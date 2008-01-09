@@ -17,11 +17,11 @@
 ?H:#$d_libm_lib_version LIBM_LIB_VERSION		/**/
 ?H:.
 ?T:foo
-?LINT:set d_libm_lib_version
+?F:!try
+: check to see if math.h defines _LIB_VERSION
 d_libm_lib_version="$undef"
 case $i_math in
     $define)
-	: check to see if math.h defines _LIB_VERSION
 	echo " "
 	echo "Checking to see if your libm supports _LIB_VERSION..." >&4
 	$cat >try.c <<EOCP
@@ -39,7 +39,7 @@ EOCP
 	    echo "Yes, it does ($foo)" >&4
 	    d_libm_lib_version="$define"
 	else
-	    echo "No, it does not (probably harmless)\n" >&4
+	    echo "No, it does not (probably harmless)" >&4
 	    fi
 	$rm_try
 	;;

@@ -4,12 +4,8 @@
 #  Andy Dougherty   	July 14, 1998
 
 rm -f config.sh Policy.sh
-cat >Policy.sh <<'EOP'
-libswanted="cl pthread $libswanted"
-EOP
-
 sh ./Configure -Dprefix=/opt/perl \
-	-Dcf_by='merijn' \
+	-Dcf_by='yourname' \
 	-Dcf_email='yourname@yourhost.yourplace.com' \
 	-Dperladmin='yourname@yourhost.yourplace.com' \
 	-Dmydomain='.yourplace.com' \

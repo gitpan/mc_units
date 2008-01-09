@@ -1,14 +1,14 @@
 ?RCS: $Id$
 ?RCS:
 ?RCS: Copyright (c) 2000, Jarkko Hietaniemi
-?RCS: 
+?RCS:
 ?RCS: You may redistribute only under the terms of the Artistic Licence,
 ?RCS: as specified in the README file that comes with the distribution.
 ?RCS: You may reuse parts of this distribution only within the terms of
 ?RCS: that same Artistic Licence; a copy of which may be found at the root
 ?RCS: of the source tree for dist 3.0.
 ?RCS:
-?MAKE:need_va_copy: +ccflags rm_try cat Compile i_stdarg i_stdlib run
+?MAKE:need_va_copy: rm_try cat Compile i_stdarg i_stdlib run
 ?MAKE:	-pick add $@ %<
 ?S:need_va_copy:
 ?S:	This symbol, if defined, indicates that the system stores
@@ -31,7 +31,7 @@
 ?H:#$need_va_copy	NEED_VA_COPY		/**/
 ?H:.
 ?T:okay
-?LINT:set need_va_copy
+?F:!try
 : see if we need va_copy
 echo " "
 case "$i_stdarg" in

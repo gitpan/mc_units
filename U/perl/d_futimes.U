@@ -17,10 +17,10 @@
 ?C:.
 ?H:#$d_futimes HAS_FUTIMES		/**/
 ?H:.
-?LINT:set d_futimes
 ?T:rc
-d_futimes="$undef"
+?F:!try
 : check for a working futimes
+d_futimes="$undef"
 echo " "
 echo "Checking if you have a working futimes()" >&4
 $cat >try.c <<EOCP

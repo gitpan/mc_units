@@ -1,7 +1,7 @@
 ?RCS: $Id$
 ?RCS:
 ?RCS: Copyright (c) 1999, Jarkko Hietaniemi
-?RCS: 
+?RCS:
 ?RCS: You may redistribute only under the terms of the Artistic Licence,
 ?RCS: as specified in the README file that comes with the distribution.
 ?RCS: You may reuse parts of this distribution only within the terms of
@@ -9,7 +9,7 @@
 ?RCS: of the source tree for dist 3.0.
 ?RCS:
 ?MAKE:fflushNULL fflushall: Compile cat rm rm_try test osname run to from \
-	Oldconfig Myread Setvar exe_ext echo \
+	Oldconfig Myread Setvar echo \
 	d_sysconf i_unistd d_stdio_stream_array stdio_stream_array i_stdlib
 ?MAKE:	-pick add $@ %<
 ?S:fflushNULL:
@@ -38,7 +38,8 @@
 ?H:#$fflushall	FFLUSH_ALL 		/**/
 ?H:.
 ?T:output code
-?F:!try.out
+?F:!try.out !try
+: Check how to flush
 echo " "
 $cat >&4 <<EOM
 Checking how to flush all pending stdio output...

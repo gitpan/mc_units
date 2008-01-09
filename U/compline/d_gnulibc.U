@@ -3,7 +3,7 @@
 ?RCS: Copyright (c) 1996,1998 Andy Dougherty
 ?RCS: Copyright (c) 1996, Sven Verdoolaege
 ?RCS: Copyright (c) 1991-1993, Raphael Manfredi
-?RCS: 
+?RCS:
 ?RCS: You may redistribute only under the terms of the Artistic Licence,
 ?RCS: as specified in the README file that comes with the distribution.
 ?RCS: You may reuse parts of this distribution only within the terms of
@@ -30,12 +30,12 @@
 ?C:	the GNU C library is being used.  A better check is to use
 ?C:	the __GLIBC__ and __GLIBC_MINOR__ symbols supplied with glibc.
 ?C:.
-?F:!glibc.ver
 ?H:#$d_gnulibc HAS_GNULIBC  	/**/
 ?H:?%<:#if defined(HAS_GNULIBC) && !defined(_GNU_SOURCE)
 ?H:?%<:#   define _GNU_SOURCE
 ?H:?%<:#endif
-?H.
+?H:.
+?F:!glibc.ver !try
 ?LINT: set d_gnulibc
 ?X:	gnulibc can be executed by calling __libc_main().
 ?X:	Ulrich Drepper doesn't think any other libc does that,
@@ -55,6 +55,7 @@
 ?X: Although the exact format isn't documented, __gnu_get_libc_version()
 ?X: returns a simple string '2.1.3' in glibc 2.1.3.
 ?X:
+: Check if we are using the GNU C library
 echo " "
 echo "Checking for GNU C Library..." >&4
 cat >try.c <<'EOCP'

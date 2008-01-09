@@ -16,25 +16,25 @@
 ?C:.
 ?H:#$d_cplusplus USE_CPLUSPLUS		/**/
 ?H:.
+?F:!try
 ?LINT:set d_cplusplus
-
+: Check if we are using C++
 echo " "
 echo "Checking for C++..." >&4
-cat >try.c <<'EOCP'
+$cat >try.c <<'EOCP'
 #include <stdio.h>
 int main(void)
 {
 #ifdef __cplusplus
-    printf("define\n");
-#else
-    printf("undef\n");
-#endif
     return 0;
+#else
+    return 1;
+#endif
 }
 EOCP
 set try
-if eval $compile_ok && $run ./try >cplusplus$$; then
-	val=`$cat cplusplus$$`
+if eval $compile_ok && $run ./try; then
+	val="$define"
 	echo "You are using a C++ compiler."
 else
 	val="$undef"

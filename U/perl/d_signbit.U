@@ -20,7 +20,8 @@
 ?C:.
 ?H:#$d_signbit HAS_SIGNBIT		/**/
 ?H:.
-?LINT:set d_signbit d_use_signbit
+?F:!try
+?LINT:set d_signbit
 : see if signbit exists
 $echo $n "Checking to see if you have signbit() available to work on $nvtype... $c" >&4
 $cat >try.c <<EOCP

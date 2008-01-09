@@ -10,9 +10,9 @@
 ?MAKE:known_extensions extensions dynamic_ext static_ext nonxs_ext \
 	useposix useopcode : \
 	Myread hint usedl d_sem d_socket i_db i_dbm i_rpcsvcdbm i_gdbm \
-	i_ndbm usethreads useithreads package test cat rsrc \
+	i_ndbm usethreads use5005threads package test cat rsrc \
 	d_msg d_shm osname use64bitint i_langinfo d_nl_langinfo \
-	libs
+	libs d_cplusplus
 ?MAKE:	-pick add $@ %<
 ?Y:BOTTOM
 ?S:known_extensions:
@@ -59,6 +59,7 @@
 ?LINT:extern noextensions
 ?LINT:extern onlyextensions
 ?T:keepextensions i
+: Check extensions
 echo " "
 echo "Looking for extensions..." >&4
 : If we are using the old config.sh, known_extensions may contain
@@ -98,15 +99,15 @@ cd "$rsrc/ext"
 set X
 shift
 eval $find_extensions
-# Special case:  Add in threads/shared since it is not picked up by the
-# recursive find above (and adding in general recursive finding breaks
-# SDBM_File/sdbm).  A.D.  10/25/2001.
-known_extensions="$known_extensions threads/shared"
+# Special case:  Add in modules that nest beyond the first level.
+# Currently threads/shared and Hash/Util/FieldHash, since they are
+# not picked up by the recursive find above (and adding in general
+# recursive finding breaks SDBM_File/sdbm).
+# A.D. 20011025 (SDBM), ajgough 20071008 (FieldHash)
+known_extensions="$known_extensions threads/shared Hash/Util/FieldHash"
 set X $known_extensions
 shift
 known_extensions="$*"
-#  Ditto for IO/Compress/Base and IO/Compress/Zlib
-nonxs_extensions="$nonxs_extensions IO/Compress/Base IO/Compress/Zlib"
 set X $nonxs_extensions
 shift
 nonxs_extensions="$*"
@@ -133,6 +134,12 @@ for xxx in $known_extensions ; do
 		$define$define) avail_ext="$avail_ext $xxx" ;;
 		esac
 		;;
+	IPC/SysV|ipc/sysv)
+		: XXX Do we need a useipcsysv variable here
+		case "${d_msg}${d_sem}${d_shm}" in
+		*"${define}"*) avail_ext="$avail_ext $xxx" ;;
+		esac
+		;;
 	NDBM_File|ndbm_fil)
 		case "$i_ndbm" in
 		$define)
@@ -150,24 +157,28 @@ for xxx in $known_extensions ; do
 	ODBM_File|odbm_fil)
 		case "${i_dbm}${i_rpcsvcdbm}" in
 		*"${define}"*)
-		    case "$osname-$use64bitint" in
-		    hpux-define)
-			case "$libs" in
-			*-ldbm*) avail_ext="$avail_ext $xxx" ;;
+		    case "$d_cplusplus" in
+		    define) ;; # delete as a function name will not work
+		    *)  case "$osname-$use64bitint" in
+			hpux-define)
+			    case "$libs" in
+			    *-ldbm*) avail_ext="$avail_ext $xxx" ;;
+			    esac
+			    ;;
+			*) avail_ext="$avail_ext $xxx" ;;
 			esac
 			;;
-		    *) avail_ext="$avail_ext $xxx" ;;
 		    esac
 		    ;;
 		esac
 		;;
-	POSIX|posix)
-		case "$useposix" in
+	Opcode|opcode)
+		case "$useopcode" in
 		true|define|y) avail_ext="$avail_ext $xxx" ;;
 		esac
 		;;
-	Opcode|opcode)
-		case "$useopcode" in
+	POSIX|posix)
+		case "$useposix" in
 		true|define|y) avail_ext="$avail_ext $xxx" ;;
 		esac
 		;;
@@ -190,10 +201,24 @@ for xxx in $known_extensions ; do
 	Thread|thread)
                 case "$usethreads" in
                 true|$define|y)
-                        case "$useithreads" in
-                        $undef|false|[nN]*) avail_ext="$avail_ext $xxx" ;;
+                        case "$use5005threads" in
+                        $define|true|[yY]*) avail_ext="$avail_ext $xxx" ;;
                         esac
 		esac
+		;;
+	threads|threads/shared)
+		# threads and threads::shared are special cases.
+		# To stop people from asking "Perl 5.8.0 was supposed
+		# to have this new fancy threads implementation but my
+		# perl doesn't have it" and from people trying to
+		# (re)install the threads module using CPAN.pm and
+		# CPAN.pm then offering to reinstall Perl 5.8.0,
+		# the threads.pm and threads/shared.pm will always be
+		# there, croaking informatively ("you need to rebuild
+		# all of Perl with threads, sorry") when threads haven't
+		# been compiled in.
+		# --jhi
+		avail_ext="$avail_ext $xxx"
 		;;
 	Win32*)
 		case "$osname" in
@@ -211,26 +236,6 @@ for xxx in $known_extensions ; do
 		# This is just for testing.  Skip it unless we have dynamic loading.
 		case "$usedl" in
 		$define) avail_ext="$avail_ext $xxx" ;;
-		esac
-		;;
-	threads|threads/shared)
-		# threads and threads::shared are special cases.
-		# To stop people from asking "Perl 5.8.0 was supposed
-		# to have this new fancy threads implementation but my
-		# perl doesn't have it" and from people trying to
-		# (re)install the threads module using CPAN.pm and
-		# CPAN.pm then offering to reinstall Perl 5.8.0,
-		# the threads.pm and threads/shared.pm will always be
-		# there, croaking informatively ("you need to rebuild
-		# all of Perl with threads, sorry") when threads haven't
-		# been compiled in.
-		# --jhi
-		avail_ext="$avail_ext $xxx"
-		;;
-	IPC/SysV|ipc/sysv)
-		: XXX Do we need a useipcsysv variable here
-		case "${d_msg}${d_sem}${d_shm}" in
-		*"${define}"*) avail_ext="$avail_ext $xxx" ;;
 		esac
 		;;
 	*)	avail_ext="$avail_ext $xxx"
