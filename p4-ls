@@ -1,0 +1,41 @@
+#!/pro/bin/perl
+
+use strict;
+use warnings;
+
+my %tree;
+
+sub dirs
+{
+    my $dir = shift;
+
+    print STDERR "DIRS    $dir/*\n";
+    chomp (my @dirs = qx{p4 dirs $dir/* 2>/dev/null});
+    print STDERR "D       $_\n" for @dirs;
+    @dirs;
+    } # dirs
+
+sub files
+{
+    my $dir = shift;
+
+    print STDERR "FILES   $dir/*\n";
+    foreach my $f (qx{p4 files $dir/*}) {
+	chomp $f;
+	my $vsn = ($f =~ s/#(\d+).*//);
+	printf STDERR "F %5d %s\n", $vsn, $f;
+	(my $lf = $f) =~ s{//depot/}{};
+	$tree{$f} = [ "F", $lf, $vsn, -s $lf ];
+	}
+
+    foreach my $d (dirs $dir) {
+	$tree{$d} = [ "D" ];
+	files ($d);
+	}
+
+    } # files
+
+files "//depot/metaconfig";
+
+use Data::Dumper; $Data::Dumper::Sortkeys = 1;
+print Dumper \%tree;

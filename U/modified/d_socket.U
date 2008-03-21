@@ -1,7 +1,7 @@
 ?RCS: $Id: d_socket.U,v 3.0.1.2 1997/02/28 15:46:00 ram Exp $
 ?RCS:
 ?RCS: Copyright (c) 1991-1993, Raphael Manfredi
-?RCS: 
+?RCS:
 ?RCS: You may redistribute only under the terms of the Artistic Licence,
 ?RCS: as specified in the README file that comes with the distribution.
 ?RCS: You may reuse parts of this distribution only within the terms of
@@ -21,7 +21,7 @@
 ?MAKE:d_socket d_oldsock d_sockpair socketlib sockethdr \
 	d_msg_ctrunc d_msg_dontroute d_msg_oob d_msg_peek d_msg_proxy \
 	d_scm_rights: \
-	contains libc echo n c ar nm nm_opt nm_extract Inlibc Csym _a \
+	contains echo n c ar nm nm_opt nm_extract Inlibc Csym _a \
 	Compile cat rm_try Setvar Hasfield
 ?MAKE:	-pick add $@ %<
 ?S:d_socket:
@@ -130,9 +130,9 @@
 ?LINT:set d_sockpair
 ?LINT:set d_msg_ctrunc d_msg_dontroute d_msg_oob d_msg_peek d_msg_proxy
 ?LINT:set d_scm_rights
+: see whether socket exists
 socketlib=''
 sockethdr=''
-: see whether socket exists
 echo " "
 $echo $n "Hmm... $c" >&4
 if set socket val -f d_socket; eval $csym; $val; then

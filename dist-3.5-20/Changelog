@@ -1,0 +1,107 @@
+------------------------------------------------------------------------
+r1 | rmanfredi | 2006-08-24 14:32:52 +0200 (Thu, 24 Aug 2006) | 2 lines
+
+Moving project to sourceforge.
+
+------------------------------------------------------------------------
+r2 | rmanfredi | 2006-08-24 20:22:11 +0200 (Thu, 24 Aug 2006) | 2 lines
+
+Updated copyright date.
+
+------------------------------------------------------------------------
+r3 | rmanfredi | 2006-08-25 23:39:07 +0200 (Fri, 25 Aug 2006) | 2 lines
+
+Added keyword substitution property.
+
+------------------------------------------------------------------------
+r4 | rmanfredi | 2006-08-25 23:54:31 +0200 (Fri, 25 Aug 2006) | 4 lines
+
+Let metaconfig use the MANIFEST file if there is no MANIFEST.new.
+The MANIFEST.new file is necessary when using the "pat" tools, but not
+when running metaconfig by itself.
+
+------------------------------------------------------------------------
+r5 | rmanfredi | 2006-08-26 00:09:39 +0200 (Sat, 26 Aug 2006) | 4 lines
+
+Fixed Jmakefile: there's no need to request manual inclusion of symbols.
+The MakeDirectories() target was using @! instead of proper @@ terminator
+to introduce the commands.
+
+------------------------------------------------------------------------
+r6 | rmanfredi | 2006-08-26 00:21:46 +0200 (Sat, 26 Aug 2006) | 2 lines
+
+Advertise SVN's repository for dist in every generated Configure script.
+
+------------------------------------------------------------------------
+r7 | rmanfredi | 2006-08-26 00:24:13 +0200 (Sat, 26 Aug 2006) | 5 lines
+
+InstallTarget() now uses :: targets.
+Default empty rule for all makefiles is now called "all" instead of "emptyrule"
+because if there is nothing to be done, GNU make prints the target name and
+"emptyrule" is not pretty.
+
+------------------------------------------------------------------------
+r8 | rmanfredi | 2006-08-26 00:27:18 +0200 (Sat, 26 Aug 2006) | 2 lines
+
+Added keyword expansion.
+
+------------------------------------------------------------------------
+r9 | rmanfredi | 2006-08-26 00:31:50 +0200 (Sat, 26 Aug 2006) | 3 lines
+
+Removed obsoleted ">VAR" lines requesting that the symbol be included.
+Jmake from 3.5 is now smart enough to figure this out by itself.
+
+------------------------------------------------------------------------
+r10 | rmanfredi | 2006-08-26 00:33:07 +0200 (Sat, 26 Aug 2006) | 2 lines
+
+Regenerated all Makefile.SH files.
+
+------------------------------------------------------------------------
+r11 | rmanfredi | 2006-08-26 00:35:20 +0200 (Sat, 26 Aug 2006) | 2 lines
+
+This starts the dist-3.5 baseline.
+
+------------------------------------------------------------------------
+r12 | rmanfredi | 2006-08-28 18:44:41 +0200 (Mon, 28 Aug 2006) | 2 lines
+
+Default to "-O2 -g" when using gcc.
+
+------------------------------------------------------------------------
+r13 | rmanfredi | 2006-08-28 18:48:29 +0200 (Mon, 28 Aug 2006) | 2 lines
+
+Removed stale Mcc dependency.
+
+------------------------------------------------------------------------
+r14 | rmanfredi | 2006-08-28 18:51:14 +0200 (Mon, 28 Aug 2006) | 2 lines
+
+Do not list special unit "Mcc" as being made.
+
+------------------------------------------------------------------------
+r15 | rmanfredi | 2006-08-30 20:21:51 +0200 (Wed, 30 Aug 2006) | 3 lines
+
+Added I_SYS_POLL and I_POLL since we cannot rely on HAS_POLL being enough
+to include <poll.h>.
+
+------------------------------------------------------------------------
+r16 | rmanfredi | 2006-11-04 13:11:51 +0100 (Sat, 04 Nov 2006) | 2 lines
+
+Taught metaxref to use MANIFEST if MANIFEST.new is missing.
+
+------------------------------------------------------------------------
+r17 | rmanfredi | 2006-11-04 13:13:28 +0100 (Sat, 04 Nov 2006) | 2 lines
+
+Applied patch from Christian Biere, which adds "-Wshadow" to gcc 3.x flags.
+
+------------------------------------------------------------------------
+r18 | rmanfredi | 2006-12-27 11:35:09 +0100 (Wed, 27 Dec 2006) | 3 lines
+
+Added InstallProgramNoStrip() to request installation of a program without
+stripping the debugging symbols.
+
+------------------------------------------------------------------------
+r19 | rmanfredi | 2007-08-13 14:14:08 +0200 (Mon, 13 Aug 2007) | 3 lines
+
+Linux does not like ^M as line endings: cpp 4.1.x complains.  Try with ^A,
+hoping it will continue to work on HP-UX.
+
+------------------------------------------------------------------------
