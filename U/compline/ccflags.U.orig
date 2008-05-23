@@ -80,6 +80,7 @@
 ?T:inctest thisincl xxx inclwanted ftry previous thislibdir
 ?T:EBUGGING DEBUGGING
 ?T:check flag callback checkccflag
+?F:!cpp.c !gcctest !try
 ?D:cppflags=''
 ?D:ccflags=''
 ?D:ldflags=''
@@ -156,16 +157,21 @@ checkccflag='check=$1; flag=$2; callback=$3;
 echo " ";
 echo "Checking if your compiler accepts $flag" 2>&1;
 echo "int main(void) { return 0; }" > gcctest.c;
-if $cc -O2 $flag -o gcctest gcctest.c && ./gcctest; then
+if $cc -O2 $flag -o gcctest gcctest.c 2>gcctest.out && ./gcctest; then
     echo "Yes, it does." 2>&1;
-    case "$ccflags" in
-    *$check*)
-	echo "Leaving current flags $ccflags alone." 2>&1
-	;;
-    *) dflt="$dflt $flag";
-	eval $callback
-	;;
-    esac
+    if $test -s gcctest.out ; then
+        echo "But your platform does not like it:";
+        cat gcctest.out;
+    else
+	case "$ccflags" in
+	*$check*)
+	    echo "Leaving current flags $ccflags alone." 2>&1
+	    ;;
+	*) dflt="$dflt $flag";
+	    eval $callback
+	    ;;
+	esac
+    fi
 else
     echo "Nope, it does not, but that is ok." 2>&1;
 fi
@@ -183,7 +189,7 @@ default|recommended)
 	esac
 ?X: check for POSIXized ISC
 	case "$gccversion" in
-	2*) if test -d /etc/conf/kconfig.d &&
+	2*) if $test -d /etc/conf/kconfig.d &&
 			$contains _POSIX_VERSION $usrinc/sys/unistd.h >/dev/null 2>&1
 		then
 			# Interactive Systems (ISC) POSIX mode.
@@ -224,7 +230,7 @@ default|recommended)
 	# as that way the compiler can do the right implementation dependant
 	# thing. (NWC)
 	case "$gccversion" in
-	?*)	set stack-protector -fstack-protector 'ldflags="$ldflags -fstack-protector"'
+	?*)	set stack-protector -fstack-protector
 		eval $checkccflag
 		;;
 	esac
@@ -371,6 +377,10 @@ case "$ldflags" in
 	case "$ccflags" in
 	*-posix*) dflt="$dflt -posix" ;;
 	esac
+	# See note above about -fstack-protector
+	case "$ccflags" in
+	*-fstack-protector*) dflt="$dflt -fstack-protector" ;;
+	esac
 	;;
 *) dflt="$ldflags";;
 esac
@@ -480,7 +490,7 @@ dflt=y
 ?X: when run from within `backticks`.  What fun.
 ?X: --Andy Dougherty 2/13/1998
 if $sh -c "$cc -o try $optimize $ccflags $ldflags try.c $libs" >>try.msg 2>&1; then
-	if $sh -c "$run ./try" >>try.msg 2>&1; then
+	if $sh -c "$run ./try " >>try.msg 2>&1; then
 		xxx=`$run ./try`
 		case "$xxx" in
 		"Ok") dflt=n ;;
@@ -530,5 +540,5 @@ y)
 	;;
 n) echo "OK, that should do.";;
 esac
-$rm_try
+$rm_try gcctest gcctest.out
 
